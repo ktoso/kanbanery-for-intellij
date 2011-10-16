@@ -42,24 +42,31 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
   }
 
   @NotNull
+  @Override
   public String getId() {
     return String.valueOf(task.getId());
   }
 
   @NotNull
+  @Override
   public String getSummary() {
-    return task.getTitle();
+    return getPresentableName();
   }
 
+  @NotNull
+  @Override
   public String getDescription() {
     return task.getDescription();
   }
 
   @NotNull
+  @Override
   public com.intellij.tasks.Comment[] getComments() {
     return Comment.EMPTY_ARRAY;
   }
 
+  @NotNull
+  @Override
   public Icon getIcon() {
     return IconLoader.getIcon("/resources/kanbanery.png");
   }
@@ -106,8 +113,9 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
     return false;
   }
 
+  @Override
   public boolean isIssue() {
-    return true;
+    return false;
   }
 
   @Override
@@ -140,4 +148,5 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
       }
     };
   }
+
 }

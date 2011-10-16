@@ -170,12 +170,16 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
 
       @Override
       protected void done() {
-        HashMap<Long, User> users = newHashMap();
-        for (User user : all) {
-          users.put(user.getId(), user);
-        }
+        try {
+          HashMap<Long, User> users = newHashMap();
+          for (User user : all) {
+            users.put(user.getId(), user);
+          }
 
-        myUsersCache = users;
+          myUsersCache = users;
+        } catch (NullPointerException e) {
+          LOG.warn("NullPointer while mapping task types...", e);
+        }
       }
     }.execute();
   }
@@ -192,12 +196,16 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
 
       @Override
       protected void done() {
-        HashMap<Long, TaskType> tts = newHashMap();
-        for (TaskType taskType : all) {
-          tts.put(taskType.getId(), taskType);
-        }
+        try {
+          HashMap<Long, TaskType> tts = newHashMap();
+          for (TaskType taskType : all) {
+            tts.put(taskType.getId(), taskType);
+          }
 
-        myTaskTypeCache = tts;
+          myTaskTypeCache = tts;
+        } catch (NullPointerException ex) {
+          LOG.warn("NullPointer while mapping task types...", ex);
+        }
       }
     }.execute();
   }

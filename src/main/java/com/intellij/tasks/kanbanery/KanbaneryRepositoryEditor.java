@@ -37,9 +37,6 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
 
   private final static Logger LOG = Logger.getInstance("#com.intellij.tasks.kanbanery.KanbaneryRepositoryEditor");
 
-  // used as label in list of task servers
-  protected JTextField myUrl;
-
   protected JTextField myUsernameText;
   protected JPasswordField myPasswordText;
   protected JTextField myApiKeyText;
@@ -57,9 +54,6 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
   public KanbaneryRepositoryEditor(final Project project, final KanbaneryRepository repository, Consumer<KanbaneryRepository> changeListener) {
     myRepository = repository;
     myChangeListener = changeListener;
-
-    myUrl = new JTextField();
-    myUrl.setText("Kanbanery: ");
 
     myRefreshButton.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
@@ -196,14 +190,12 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
       }
     }
 
-    String selectedWorkspaceAndProject = setupWorkspaceAndProject();
-
-    myUrl.setText("Kanbanery: " + selectedWorkspaceAndProject);
+    setupWorkspaceAndProject();
 
     myChangeListener.consume(myRepository);
   }
 
-  private String setupWorkspaceAndProject() {
+  private void setupWorkspaceAndProject() {
     try {
       String selectedWorkspaceAndProject = (String) myProjectsComboBox.getSelectedItem();
       String[] split = selectedWorkspaceAndProject.split("/");
@@ -211,13 +203,9 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
       String projectName = split[1];
       myRepository.setWorkspaceName(workspaceName);
       myRepository.setProject(projectName);
-
-      return selectedWorkspaceAndProject;
     } catch (NullPointerException e) {
       // ignore it
     }
-
-    return "";
   }
 
   private class ReloadJanbaneryActionListener implements ActionListener {
@@ -225,37 +213,23 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
     public void actionPerformed(@Nullable ActionEvent e) {
       myNeedsRefresh.setVisible(false);
 
-//      Object[] options = {"Cancel"};
-//      JOptionPane optionPane = new JOptionPane("Connecting to Kanbanery...",
-//                                               JOptionPane.DEFAULT_OPTION,
-//                                               JOptionPane.INFORMATION_MESSAGE,
-//                                               IconLoader.getIcon("/resources/kanbanery.png"),
-//                                               options,
-//                                               options[0]);
-//      final JDialog dialog = optionPane.createDialog(myRefreshButton, "Please wait");
-//      dialog.setVisible(true);
-//
-//      SwingWorker worker = new SwingWorker() {
-//
-//        @Override
-//        protected Object doInBackground() throws Exception {
-      LOG.info("Reloading kanbanery...");
-      myRepository.reloadJanbanery();
-      LOG.info("Done reloading!");
-//          return null;
-//        }
-//
-//        @Override
-//        protected void done() {
-//          dialog.setVisible(false);
-//
-      List<String> displayableProjects = myRepository.findDisplayableProjects();
+      new SwingWorker() {
 
-      CollectionComboBoxModel model = new CollectionComboBoxModel(displayableProjects, displayableProjects.get(0));
-      myProjectsComboBox.setModel(model);
-//        }
-//      };
-//      worker.execute();
+        @Override
+        protected Object doInBackground() throws Exception {
+          myRepository.reloadJanbanery();
+          return null;
+        }
+
+        @Override
+        protected void done() {
+          List<String> displayableProjects = myRepository.findDisplayableProjects();
+          String selectedItem = myRepository.getSelectedItem();
+
+          CollectionComboBoxModel model = new CollectionComboBoxModel(displayableProjects, selectedItem);
+          myProjectsComboBox.setModel(model);
+        }
+      }.execute();
     }
   }
 }
