@@ -22,11 +22,13 @@ public class KanbaneryRepositoryType extends BaseRepositoryType<KanbaneryReposit
     return "Kanbanery";
   }
 
+  @Override
   public Icon getIcon() {
-    return IconLoader.getIcon("/resources/kanbanery-16.png");
+    return IconLoader.getIcon("/resources/kanbanery.png");
   }
 
   @NotNull
+  @Override
   public KanbaneryRepository createRepository() {
     return new KanbaneryRepository(this);
   }
@@ -48,9 +50,5 @@ public class KanbaneryRepositoryType extends BaseRepositoryType<KanbaneryReposit
     return new KanbaneryRepositoryEditor(project, repository, changeListener);
   }
 
-  //  @Override
-//  public EnumSet<TaskState> getPossibleTaskStates() {
-//    return EnumSet.of(TaskState.OPEN, TaskState.IN_PROGRESS, TaskState.REOPENED, TaskState.RESOLVED);
-//  }
 }
 

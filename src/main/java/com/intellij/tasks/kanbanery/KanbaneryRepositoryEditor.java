@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2011 JetBrains s.r.o.
+ * Copyright 2000-2010 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,100 +15,163 @@
  */
 package com.intellij.tasks.kanbanery;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.tasks.config.BaseRepositoryEditor;
+import com.intellij.openapi.util.IconLoader;
+import com.intellij.tasks.TaskManager;
+import com.intellij.tasks.config.TaskRepositoryEditor;
+import com.intellij.ui.CollectionComboBoxModel;
+import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.Consumer;
 
 import javax.swing.*;
-import java.awt.*;
+import javax.swing.event.DocumentEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 /**
- * @author Dennis.Ushakov
+ * @author Dmitry Avdeev
  */
-public class KanbaneryRepositoryEditor extends BaseRepositoryEditor<KanbaneryRepository> {
+public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
 
-  private final JComboBox myWorkspace;
-  private final JComboBox myProject;
+  protected JTextField myUsernameText;
+  protected JPasswordField myPasswordText;
+  protected JTextField myApiKeyText;
 
-  private final JTextField myWorkspaceName;
-  private final JTextField myProjectName;
+  protected JComboBox myProjectsComboBox;
+  protected JCheckBox myUseApiKeyCheckBox;
+  protected JButton myRefreshButton;
+  private JPanel myPanel;
+  private JLabel myNeedsRefresh;
 
-  public KanbaneryRepositoryEditor(final Project project,
-                                   final KanbaneryRepository repository,
-                                   Consumer<KanbaneryRepository> changeListener) {
-    super(project, repository, changeListener);
+  private boolean myApplying;
+  protected final KanbaneryRepository myRepository;
+  private final Consumer<KanbaneryRepository> myChangeListener;
 
-    // used for keeping data
-    myProjectName = new JTextField();
-    myProjectName.setVisible(false);
+  public KanbaneryRepositoryEditor(final Project project, final KanbaneryRepository repository, Consumer<KanbaneryRepository> changeListener) {
+    myRepository = repository;
+    myChangeListener = changeListener;
 
-    // used for keeping data
-    myWorkspaceName = new JTextField();
-    myWorkspaceName.setVisible(false);
-
-    myUrlLabel.setVisible(false);
-    myURLText.setVisible(false);
-
-    myWorkspace = new JComboBox();
-    initWorkspace(myWorkspace);
-
-    myProject = new JComboBox();
-    initProject(myProject);
-  }
-
-  private void initWorkspace(final JComboBox myWorkspace) {
-    installListener(myWorkspaceName);
-
-    myWorkspace.addActionListener(new ActionListener() {
-      @Override
+    myRefreshButton.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-        String workspace = myWorkspace.getSelectedItem().toString();
-        myWorkspaceName.setText(workspace);
+        TaskManager.getManager(project).testConnection(repository);
       }
     });
 
-    myCustomPanel.add(myWorkspace, BorderLayout.NORTH);
-    myCustomLabel.add(new JLabel("Workspace:", SwingConstants.RIGHT) {
-      @Override
-      public Dimension getPreferredSize() {
-        final Dimension oldSize = super.getPreferredSize();
-        final Dimension size = myWorkspace.getPreferredSize();
-        return new Dimension(oldSize.width, size.height);
-      }
-    }, BorderLayout.NORTH);
+    myNeedsRefresh.setVisible(false);
+
+    if (repository.hasApiKey()) {
+      myUseApiKeyCheckBox.setSelected(true);
+    }
+    myUsernameText.setText(repository.getLogin());
+    myPasswordText.setText(repository.getPassword());
+
+    myRefreshButton.addActionListener(new ReloadJanbaneryActionListener());
+
+    installListener(myUsernameText);
+    installListener(myPasswordText);
+    installListener(myUseApiKeyCheckBox);
+
+    enableButtons();
   }
 
-  private void initProject(final JComboBox myProject) {
-    installListener(myProjectName);
+  protected void enableButtons() {
 
-    myProject.addActionListener(new ActionListener() {
-      @Override
+  }
+
+  protected void installListener(JCheckBox checkBox) {
+    checkBox.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-        String project = myProject.getSelectedItem().toString();
-        myProjectName.setText(project);
+        doApply();
       }
     });
+  }
 
-    myCustomPanel.add(myProject, BorderLayout.CENTER);
-    myCustomLabel.add(new JLabel("Project:", SwingConstants.RIGHT) {
+  protected void installListener(JTextField textField) {
+    textField.getDocument().addDocumentListener(new DocumentAdapter() {
       @Override
-      public Dimension getPreferredSize() {
-        final Dimension oldSize = super.getPreferredSize();
-        final Dimension size = myProject.getPreferredSize();
-        return new Dimension(oldSize.width, size.height);
+      protected void textChanged(DocumentEvent e) {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+          public void run() {
+            doApply();
+          }
+        });
       }
-    }, BorderLayout.CENTER);
+    });
+  }
+
+  private void doApply() {
+    if (!myApplying) {
+      try {
+        myApplying = true;
+        apply();
+      } finally {
+        myApplying = false;
+      }
+    }
+  }
+
+  public JComponent createComponent() {
+    return myPanel;
   }
 
   @Override
+  public JComponent getPreferredFocusedComponent() {
+    return myUsernameText;
+  }
+
   public void apply() {
-    myRepository.setProject(myProjectName.getText().trim());
-    myRepository.setWorkspaceName(myWorkspaceName.getText().trim());
+    String user = myUsernameText.getText().trim();
+    String pass = myPasswordText.getText().trim();
 
-    super.apply();
+    if (myRepository.newCredentials(user, pass)) {
+      myNeedsRefresh.setVisible(true);
+    }
 
-    myRepository.reloadJanbanery();
+    if (myUseApiKeyCheckBox.isSelected()) {
+      String apiKey = myApiKeyText.getText().trim();
+      myRepository.useApiKey(apiKey);
+    }
+
+    myChangeListener.consume(myRepository);
+  }
+
+  private class ReloadJanbaneryActionListener implements ActionListener {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      myNeedsRefresh.setVisible(false);
+
+      Object[] options = {"Cancel"};
+      JOptionPane optionPane = new JOptionPane("Connecting to Kanbanery...",
+                                               JOptionPane.DEFAULT_OPTION,
+                                               JOptionPane.INFORMATION_MESSAGE,
+                                               IconLoader.getIcon("/resources/kanbanery.png"),
+                                               options,
+                                               options[0]);
+      final JDialog dialog = optionPane.createDialog(myRefreshButton, "Please wait");
+
+      SwingWorker worker = new SwingWorker() {
+
+        @Override
+        protected Object doInBackground() throws Exception {
+          myRepository.reloadJanbanery();
+          return null;
+        }
+
+        @Override
+        protected void done() {
+          dialog.setVisible(false);
+
+          List<String> displayableProjects = myRepository.findDisplayableProjects();
+
+          CollectionComboBoxModel model = new CollectionComboBoxModel(displayableProjects, displayableProjects.get(0));
+          myProjectsComboBox.setModel(model);
+        }
+      };
+      worker.execute();
+
+
+    }
   }
 }

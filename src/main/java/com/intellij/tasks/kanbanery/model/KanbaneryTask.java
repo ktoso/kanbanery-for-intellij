@@ -38,7 +38,7 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
   private final Task task;
   private final List<KanbaneryComment> comments;
 
-  public KanbaneryTask(Task task, User creator, User owner, List<KanbaneryComment> comments) {
+  public KanbaneryTask(Task task, List<KanbaneryComment> comments) {
     this.task = task;
     this.comments = comments;
   }
@@ -139,7 +139,7 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
         User owner = janbanery.users().byId(task.getOwnerId());
         List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing(janbanery));
 
-        return new KanbaneryTask(task, creator, owner, kanbaneryComments);
+        return new KanbaneryTask(task, kanbaneryComments);
       }
     };
   }

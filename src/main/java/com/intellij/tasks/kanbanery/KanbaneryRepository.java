@@ -12,10 +12,12 @@ import org.jetbrains.annotations.Nullable;
 import pl.project13.janbanery.core.Janbanery;
 import pl.project13.janbanery.core.JanbaneryFactory;
 import pl.project13.janbanery.core.flow.TaskMarkFlow;
+import pl.project13.janbanery.exceptions.ProjectNotFoundException;
 import pl.project13.janbanery.resources.Comment;
-import pl.project13.janbanery.resources.User;
+import pl.project13.janbanery.resources.Workspace;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,10 +28,12 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
 
   private final static Logger LOG = Logger.getInstance("#com.intellij.tasks.kanbanery.KanbaneryRepository");
 
-  private String projectName;
-  private String workspaceName;
+  private String myApiKey;
 
-  private Janbanery janbanery;
+  private String myProjectName;
+  private String myWorkspaceName;
+
+  private Janbanery myJanbanery;
 
   /**
    * for serialization
@@ -41,6 +45,10 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
 
   private KanbaneryRepository(KanbaneryRepository other) {
     super(other);
+    this.myWorkspaceName = other.myWorkspaceName;
+    this.myProjectName = other.myProjectName;
+    this.myApiKey = other.myApiKey;
+    this.myJanbanery = other.myJanbanery;
   }
 
   public KanbaneryRepository(KanbaneryRepositoryType type) {
@@ -50,14 +58,6 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   @Override
   public Task[] getIssues(String request, int max, long since) throws Exception {
     return getIssues();
-  }
-
-  private Task[] getIssues() throws IOException {
-    List<pl.project13.janbanery.resources.Task> all = janbanery().tasks().all();
-
-    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transformUsing(janbanery()));
-
-    return tasks.toArray(new KanbaneryTask[tasks.size()]);
   }
 
   @Override
@@ -74,17 +74,12 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     }
   }
 
-  private Janbanery janbanery() {
-    if (janbanery == null) {
-      try {
-        janbanery = new JanbaneryFactory().connectUsing(getUsername(), getPassword())
-                                          .toWorkspace(workspaceName).usingProject(projectName);
-      } catch (Exception e) {
-        LOG.warn("Unable to login to Kanbanery...", e);
-      }
-    }
+  private Task[] getIssues() throws IOException {
+    List<pl.project13.janbanery.resources.Task> all = janbanery().tasks().all();
 
-    return janbanery;
+    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transformUsing(janbanery()));
+
+    return tasks.toArray(new KanbaneryTask[tasks.size()]);
   }
 
   @Nullable
@@ -92,17 +87,52 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   public Task findTask(String id) {
     try {
       pl.project13.janbanery.resources.Task task = janbanery().tasks().byId(Long.parseLong(id));
-      User creator = janbanery().users().byId(task.getCreatorId());
-      User owner = janbanery().users().byId(task.getOwnerId());
 
       List<Comment> comments = janbanery().comments().of(task).all();
       List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing(janbanery()));
 
-      return new KanbaneryTask(task, creator, owner, kanbaneryComments);
+      return new KanbaneryTask(task, kanbaneryComments);
     } catch (Exception e) {
       LOG.warn("Cannot get issue " + id + ": " + e.getMessage());
       return null;
     }
+  }
+
+  Janbanery janbanery() {
+    if (myJanbanery == null) {
+      try {
+        JanbaneryFactory.JanbaneryToWorkspace toWorkspace = new JanbaneryFactory().connectUsing(getLogin(), getPassword());
+        if (myWorkspaceName.isEmpty() || myProjectName.isEmpty()) {
+          myJanbanery = toWorkspace.notDeclaringWorkspaceYet();
+        } else {
+          try {
+            myJanbanery = toWorkspace.toWorkspace(myWorkspaceName).usingProject(myProjectName);
+          } catch (ProjectNotFoundException ex) {
+            myJanbanery = toWorkspace.toWorkspace(myWorkspaceName);
+          }
+        }
+
+      } catch (Exception e) {
+        LOG.warn("Unable to login to Kanbanery...", e);
+        return null;
+      }
+    }
+
+    return myJanbanery;
+  }
+
+  public List<String> findDisplayableProjects() {
+    List<Workspace> workspaces = getWorkspaces();
+    List<String> displayableProjects = new ArrayList<String>();
+    for (Workspace workspace : workspaces) {
+      String workspaceName = workspace.getName();
+      for (pl.project13.janbanery.resources.Project project : workspace.getProjects()) {
+        String projectName = project.getName();
+
+        displayableProjects.add(workspaceName + "/" + projectName);
+      }
+    }
+    return displayableProjects;
   }
 
   @Override
@@ -111,22 +141,68 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   public void setProject(String projectName) {
-    this.projectName = projectName;
+    this.myProjectName = projectName;
   }
 
-  public void setWorkspaceName(String workspaceName) {
-    this.workspaceName = workspaceName;
+  public void setWorkspaceName(String myWorkspaceName) {
+    this.myWorkspaceName = myWorkspaceName;
   }
 
   public void reloadJanbanery() {
-    if (this.janbanery == null) {
-      return;
-    }
-
-    janbanery.close();
-    janbanery = null; // reset the lazy getter
+    closeJanbanery();
 
     // create an instance using the new credentials / workspace
     janbanery();
+  }
+
+  private void closeJanbanery() {
+    if (this.myJanbanery != null) {
+      myJanbanery.close();
+      myJanbanery = null; // reset the lazy getter
+    }
+  }
+
+  public boolean hasApiKey() {
+    return myApiKey != null;
+  }
+
+  /**
+   * Set new credentials and return true if they have changed (a refresh of projects will be requirec)
+   */
+  public boolean newCredentials(String user, String pass) {
+    boolean changed = false;
+    if (notEqual(myUsername, user) || notEqual(myPassword, pass)) {
+      changed = true;
+    }
+
+    myUsername = user;
+    myPassword = pass;
+
+    myApiKey = null;
+
+    if (changed) {
+      closeJanbanery();
+    }
+
+    return changed;
+  }
+
+  public void useApiKey(String apiKey) {
+    myUsername = null;
+    myPassword = null;
+
+    if (notEqual(myApiKey, apiKey)) {
+      closeJanbanery();
+    }
+
+    myApiKey = apiKey;
+  }
+
+  private boolean notEqual(String oldValue, String user) {
+    return !oldValue.equals(user);
+  }
+
+  public List<Workspace> getWorkspaces() {
+    return janbanery().workspaces().all();
   }
 }
