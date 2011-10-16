@@ -19,7 +19,6 @@ package com.intellij.tasks.kanbanery.model;
 import com.google.common.base.Function;
 import com.intellij.tasks.impl.SimpleComment;
 import com.intellij.util.text.DateFormatUtil;
-import pl.project13.janbanery.core.Janbanery;
 import pl.project13.janbanery.resources.Comment;
 import pl.project13.janbanery.resources.User;
 
@@ -58,12 +57,11 @@ public class KanbaneryComment extends SimpleComment {
     builder.append(getText()).append("<br>");
   }
 
-  public static Function<Comment, KanbaneryComment> transformUsing(final Janbanery janbanery) {
+  public static Function<Comment, KanbaneryComment> transformUsing() {
     return new Function<Comment, KanbaneryComment>() {
       @Override
-      public KanbaneryComment apply( Comment input) {
-        User author = janbanery.users().byId(input.getAuthorId());
-        return new KanbaneryComment(input, author);
+      public KanbaneryComment apply(Comment input) {
+        return new KanbaneryComment(input, new User.NoOne()); // todo change this
       }
     };
   }

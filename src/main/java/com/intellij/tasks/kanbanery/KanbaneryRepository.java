@@ -8,6 +8,7 @@ import com.intellij.tasks.impl.BaseRepositoryImpl;
 import com.intellij.tasks.kanbanery.model.KanbaneryComment;
 import com.intellij.tasks.kanbanery.model.KanbaneryTask;
 import com.intellij.util.xmlb.annotations.Tag;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.project13.janbanery.core.Janbanery;
 import pl.project13.janbanery.core.JanbaneryFactory;
@@ -16,9 +17,11 @@ import pl.project13.janbanery.exceptions.ProjectNotFoundException;
 import pl.project13.janbanery.resources.Comment;
 import pl.project13.janbanery.resources.Workspace;
 
-import java.io.IOException;
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.intellij.openapi.util.text.StringUtil.isNotEmpty;
 
 /**
  * @author Konrad Malawski
@@ -28,10 +31,9 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
 
   private final static Logger LOG = Logger.getInstance("#com.intellij.tasks.kanbanery.KanbaneryRepository");
 
-  private String myApiKey;
-
-  private String myProjectName;
-  private String myWorkspaceName;
+  private String myApiKey = "";
+  private String myProjectName = "";
+  private String myWorkspaceName = "";
 
   private Janbanery myJanbanery;
 
@@ -40,7 +42,6 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
    */
   @SuppressWarnings({"UnusedDeclaration"})
   public KanbaneryRepository() {
-    super();
   }
 
   private KanbaneryRepository(KanbaneryRepository other) {
@@ -56,8 +57,11 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   @Override
-  public Task[] getIssues(String request, int max, long since) throws Exception {
-    return getIssues();
+  public Task[] getIssues(@Nullable String request, int max, long since) throws Exception {
+    List<pl.project13.janbanery.resources.Task> all = janbanery().tasks().all();
+    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transform());
+
+    return tasks.toArray(new KanbaneryTask[tasks.size()]);
   }
 
   @Override
@@ -74,12 +78,22 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     }
   }
 
-  private Task[] getIssues() throws IOException {
-    List<pl.project13.janbanery.resources.Task> all = janbanery().tasks().all();
+  @Override
+  public void testConnection() throws Exception {
+    getIssues(null, 10, 0);
+  }
 
-    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transformUsing(janbanery()));
+  @Override
+  public boolean isConfigured() {
+    boolean hasCredentials = (isNotEmpty(myUsername) && isNotEmpty(myPassword)) || isNotEmpty(myApiKey);
+    boolean hasProject = isNotEmpty(myWorkspaceName) && isNotEmpty(myProjectName);
 
-    return tasks.toArray(new KanbaneryTask[tasks.size()]);
+    return hasCredentials && hasProject;
+  }
+
+  @Override
+  public String getPresentableName() {
+    return "Kanbanery: " + myWorkspaceName + " / " + myProjectName;
   }
 
   @Nullable
@@ -89,7 +103,7 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
       pl.project13.janbanery.resources.Task task = janbanery().tasks().byId(Long.parseLong(id));
 
       List<Comment> comments = janbanery().comments().of(task).all();
-      List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing(janbanery()));
+      List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing());
 
       return new KanbaneryTask(task, kanbaneryComments);
     } catch (Exception e) {
@@ -99,23 +113,40 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   Janbanery janbanery() {
-    if (myJanbanery == null) {
-      try {
-        JanbaneryFactory.JanbaneryToWorkspace toWorkspace = new JanbaneryFactory().connectUsing(getLogin(), getPassword());
-        if (myWorkspaceName.isEmpty() || myProjectName.isEmpty()) {
-          myJanbanery = toWorkspace.notDeclaringWorkspaceYet();
-        } else {
-          try {
-            myJanbanery = toWorkspace.toWorkspace(myWorkspaceName).usingProject(myProjectName);
-          } catch (ProjectNotFoundException ex) {
-            myJanbanery = toWorkspace.toWorkspace(myWorkspaceName);
-          }
-        }
+    LOG.info("Reloading Janbanery...");
 
-      } catch (Exception e) {
-        LOG.warn("Unable to login to Kanbanery...", e);
-        return null;
+    if (myJanbanery != null) {
+      myJanbanery.close();
+      myJanbanery = null;
+    }
+
+    try {
+      JanbaneryFactory factory = new JanbaneryFactory();
+
+      JanbaneryFactory.JanbaneryToWorkspace toWorkspace;
+      if (hasApiKey()) {
+        toWorkspace = factory.connectUsing(getApiKey());
+      } else {
+        toWorkspace = factory.connectUsing(getUsername(), getPassword());
       }
+
+      if (myWorkspaceName.isEmpty() || myProjectName.isEmpty()) {
+        myJanbanery = toWorkspace.notDeclaringWorkspaceYet();
+      } else {
+        try {
+          myJanbanery = toWorkspace.toWorkspace(myWorkspaceName).usingProject(myProjectName);
+        } catch (ProjectNotFoundException ex) {
+          myJanbanery = toWorkspace.toWorkspace(myWorkspaceName);
+        }
+      }
+
+    } catch (Exception e) {
+      LOG.warn("Unable to login to Kanbanery...", e);
+      JOptionPane.showMessageDialog(null,
+                                    "Please check your credentials and try again.",
+                                    "Unable to login to Kanbanery.com",
+                                    JOptionPane.WARNING_MESSAGE);
+      return null;
     }
 
     return myJanbanery;
@@ -163,7 +194,12 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   public boolean hasApiKey() {
-    return myApiKey != null;
+    return !myApiKey.isEmpty();
+  }
+
+  @NotNull
+  public String getApiKey() {
+    return myApiKey;
   }
 
   /**
@@ -178,18 +214,19 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     myUsername = user;
     myPassword = pass;
 
-    myApiKey = null;
+    myApiKey = "";
 
     if (changed) {
       closeJanbanery();
     }
 
+    LOG.info("Switched to username/pass auth in UI");
     return changed;
   }
 
   public void useApiKey(String apiKey) {
-    myUsername = null;
-    myPassword = null;
+    myUsername = "";
+    myPassword = "";
 
     if (notEqual(myApiKey, apiKey)) {
       closeJanbanery();
@@ -198,11 +235,54 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     myApiKey = apiKey;
   }
 
-  private boolean notEqual(String oldValue, String user) {
-    return !oldValue.equals(user);
+  @SuppressWarnings("SimplifiableIfStatement")
+  private boolean notEqual(String oldValue, String newValue) {
+    if (oldValue == null && newValue == null) {
+      return true;
+    } else if (oldValue != null && newValue != null) {
+      return !oldValue.equals(newValue);
+    } else {
+      return false;
+    }
   }
 
   public List<Workspace> getWorkspaces() {
     return janbanery().workspaces().all();
+  }
+
+  @NotNull
+  public String getSelectedItem() {
+    return myWorkspaceName + "/" + myProjectName;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+
+    KanbaneryRepository that = (KanbaneryRepository) o;
+
+    if (myProjectName != null ? !myProjectName.equals(that.myProjectName) : that.myProjectName != null) {
+      return false;
+    }
+    if (myWorkspaceName != null ? !myWorkspaceName.equals(that.myWorkspaceName) : that.myWorkspaceName != null) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = myProjectName != null ? myProjectName.hashCode() : 0;
+    result = 31 * result + (myWorkspaceName != null ? myWorkspaceName.hashCode() : 0);
+    return result;
   }
 }

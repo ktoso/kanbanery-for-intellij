@@ -22,6 +22,7 @@ public class KanbaneryRepositoryType extends BaseRepositoryType<KanbaneryReposit
     return "Kanbanery";
   }
 
+  @NotNull
   @Override
   public Icon getIcon() {
     return IconLoader.getIcon("/resources/kanbanery.png");

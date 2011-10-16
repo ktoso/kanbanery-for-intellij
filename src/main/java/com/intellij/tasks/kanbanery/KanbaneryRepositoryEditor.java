@@ -16,13 +16,13 @@
 package com.intellij.tasks.kanbanery;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
-import com.intellij.tasks.TaskManager;
 import com.intellij.tasks.config.TaskRepositoryEditor;
 import com.intellij.ui.CollectionComboBoxModel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.Consumer;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -34,6 +34,11 @@ import java.util.List;
  * @author Dmitry Avdeev
  */
 public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
+
+  private final static Logger LOG = Logger.getInstance("#com.intellij.tasks.kanbanery.KanbaneryRepositoryEditor");
+
+  // used as label in list of task servers
+  protected JTextField myUrl;
 
   protected JTextField myUsernameText;
   protected JPasswordField myPasswordText;
@@ -53,9 +58,13 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
     myRepository = repository;
     myChangeListener = changeListener;
 
+    myUrl = new JTextField();
+    myUrl.setText("Kanbanery: ");
+
     myRefreshButton.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-        TaskManager.getManager(project).testConnection(repository);
+//        TaskManager.getManager(project).testConnection(repository);
+        myRepository.reloadJanbanery();
       }
     });
 
@@ -63,21 +72,70 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
 
     if (repository.hasApiKey()) {
       myUseApiKeyCheckBox.setSelected(true);
+      displayOnlyApiKey(repository);
+    } else {
+      myUseApiKeyCheckBox.setSelected(false);
+      displayOnlyUsernameAndPass(repository);
     }
-    myUsernameText.setText(repository.getLogin());
-    myPasswordText.setText(repository.getPassword());
 
     myRefreshButton.addActionListener(new ReloadJanbaneryActionListener());
+
+    myUseApiKeyCheckBox.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        boolean useApiKey = myUseApiKeyCheckBox.isSelected();
+        if (useApiKey) {
+          displayOnlyApiKey(repository);
+        } else {
+          displayOnlyUsernameAndPass(repository);
+        }
+      }
+    });
+
+    // reload janbanery and workspaces in UI
+    try {
+      new ReloadJanbaneryActionListener().actionPerformed(null);
+      myProjectsComboBox.setSelectedItem(repository.getSelectedItem());
+    } catch (Exception ignore) {
+      // i don't care if it failed here
+    }
 
     installListener(myUsernameText);
     installListener(myPasswordText);
     installListener(myUseApiKeyCheckBox);
-
-    enableButtons();
+    installListener(myApiKeyText);
+    installListener(myProjectsComboBox);
   }
 
-  protected void enableButtons() {
+  private void displayOnlyUsernameAndPass(KanbaneryRepository repository) {
+    myApiKeyText.setText("");
+    myApiKeyText.setEnabled(false);
 
+    myUsernameText.setText(repository.getUsername());
+    myUsernameText.setEnabled(true);
+
+    myPasswordText.setText(repository.getPassword());
+    myPasswordText.setEnabled(true);
+  }
+
+  private void displayOnlyApiKey(KanbaneryRepository repository) {
+    myApiKeyText.setText(repository.getApiKey());
+    myApiKeyText.setEnabled(true);
+
+    myUsernameText.setText("");
+    myUsernameText.setEnabled(false);
+
+    myPasswordText.setText("");
+    myPasswordText.setEnabled(false);
+  }
+
+  private void installListener(JComboBox comboBox) {
+    comboBox.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        doApply();
+      }
+    });
   }
 
   protected void installListener(JCheckBox checkBox) {
@@ -122,56 +180,82 @@ public class KanbaneryRepositoryEditor extends TaskRepositoryEditor {
   }
 
   public void apply() {
-    String user = myUsernameText.getText().trim();
-    String pass = myPasswordText.getText().trim();
-
-    if (myRepository.newCredentials(user, pass)) {
-      myNeedsRefresh.setVisible(true);
-    }
-
+    // use api key
     if (myUseApiKeyCheckBox.isSelected()) {
       String apiKey = myApiKeyText.getText().trim();
       myRepository.useApiKey(apiKey);
+      myNeedsRefresh.setVisible(true);
+    } else {
+      @SuppressWarnings("deprecation")
+      String pass = myPasswordText.getText().trim();
+      String user = myUsernameText.getText().trim();
+
+      // use new credentials
+      if (myRepository.newCredentials(user, pass)) {
+        myNeedsRefresh.setVisible(true);
+      }
     }
+
+    String selectedWorkspaceAndProject = setupWorkspaceAndProject();
+
+    myUrl.setText("Kanbanery: " + selectedWorkspaceAndProject);
 
     myChangeListener.consume(myRepository);
   }
 
+  private String setupWorkspaceAndProject() {
+    try {
+      String selectedWorkspaceAndProject = (String) myProjectsComboBox.getSelectedItem();
+      String[] split = selectedWorkspaceAndProject.split("/");
+      String workspaceName = split[0];
+      String projectName = split[1];
+      myRepository.setWorkspaceName(workspaceName);
+      myRepository.setProject(projectName);
+
+      return selectedWorkspaceAndProject;
+    } catch (NullPointerException e) {
+      // ignore it
+    }
+
+    return "";
+  }
+
   private class ReloadJanbaneryActionListener implements ActionListener {
     @Override
-    public void actionPerformed(ActionEvent e) {
+    public void actionPerformed(@Nullable ActionEvent e) {
       myNeedsRefresh.setVisible(false);
 
-      Object[] options = {"Cancel"};
-      JOptionPane optionPane = new JOptionPane("Connecting to Kanbanery...",
-                                               JOptionPane.DEFAULT_OPTION,
-                                               JOptionPane.INFORMATION_MESSAGE,
-                                               IconLoader.getIcon("/resources/kanbanery.png"),
-                                               options,
-                                               options[0]);
-      final JDialog dialog = optionPane.createDialog(myRefreshButton, "Please wait");
+//      Object[] options = {"Cancel"};
+//      JOptionPane optionPane = new JOptionPane("Connecting to Kanbanery...",
+//                                               JOptionPane.DEFAULT_OPTION,
+//                                               JOptionPane.INFORMATION_MESSAGE,
+//                                               IconLoader.getIcon("/resources/kanbanery.png"),
+//                                               options,
+//                                               options[0]);
+//      final JDialog dialog = optionPane.createDialog(myRefreshButton, "Please wait");
+//      dialog.setVisible(true);
+//
+//      SwingWorker worker = new SwingWorker() {
+//
+//        @Override
+//        protected Object doInBackground() throws Exception {
+      LOG.info("Reloading kanbanery...");
+      myRepository.reloadJanbanery();
+      LOG.info("Done reloading!");
+//          return null;
+//        }
+//
+//        @Override
+//        protected void done() {
+//          dialog.setVisible(false);
+//
+      List<String> displayableProjects = myRepository.findDisplayableProjects();
 
-      SwingWorker worker = new SwingWorker() {
-
-        @Override
-        protected Object doInBackground() throws Exception {
-          myRepository.reloadJanbanery();
-          return null;
-        }
-
-        @Override
-        protected void done() {
-          dialog.setVisible(false);
-
-          List<String> displayableProjects = myRepository.findDisplayableProjects();
-
-          CollectionComboBoxModel model = new CollectionComboBoxModel(displayableProjects, displayableProjects.get(0));
-          myProjectsComboBox.setModel(model);
-        }
-      };
-      worker.execute();
-
-
+      CollectionComboBoxModel model = new CollectionComboBoxModel(displayableProjects, displayableProjects.get(0));
+      myProjectsComboBox.setModel(model);
+//        }
+//      };
+//      worker.execute();
     }
   }
 }

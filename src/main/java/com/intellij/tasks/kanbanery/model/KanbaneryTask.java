@@ -17,16 +17,14 @@
 package com.intellij.tasks.kanbanery.model;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.intellij.tasks.TaskState;
 import com.intellij.tasks.TaskType;
 import org.jetbrains.annotations.NotNull;
-import pl.project13.janbanery.core.Janbanery;
-import pl.project13.janbanery.resources.Comment;
+import org.jetbrains.annotations.Nullable;
 import pl.project13.janbanery.resources.Task;
-import pl.project13.janbanery.resources.User;
 
 import javax.swing.*;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -121,11 +119,17 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
   }
 
   @Override
+  @Nullable
   public String getCustomIcon() {
     return null;
   }
 
-  public static Function<Task, KanbaneryTask> transformUsing(final Janbanery janbanery) {
+  @Override
+  public String getPresentableName() {
+    return task.getId() + " [" + task.getTaskTypeName() + "]: " + task.getTitle();
+  }
+
+  public static Function<Task, KanbaneryTask> transform() {
 
     return new Function<Task, KanbaneryTask>() {
       @Override
@@ -134,10 +138,9 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
           return null;
         }
 
-        List<Comment> comments = janbanery.comments().of(task).all();
-        User creator = janbanery.users().byId(task.getCreatorId());
-        User owner = janbanery.users().byId(task.getOwnerId());
-        List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing(janbanery));
+//        List<Comment> comments = janbanery.comments().of(task).all();
+//        List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transform(janbanery));
+        List<KanbaneryComment> kanbaneryComments = Collections.emptyList();
 
         return new KanbaneryTask(task, kanbaneryComments);
       }
