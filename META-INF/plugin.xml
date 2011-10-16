@@ -1,0 +1,40 @@
+<idea-plugin version="2">
+    <id>pl.project13.intellij.kanbanery</id>
+    <name>IntelliJ Kanbanery</name>
+    <description>
+        A connector for IntelliJ Tasks for Kanbanery.
+        You'll gain all what Tasks have to offer and even be able to select them from your Kanbanery board :-)
+    </description>
+    <version>1.0</version>
+    <vendor>project13.pl</vendor>
+    <vendor logo="/kanbanery.png">Project13.pl + Kanbanery.com</vendor>
+    <idea-version since-build="8000"/>
+
+    <depends>com.intellij.modules.xml</depends>
+    <depends optional="true" config-file="java-contexts.xml">com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <errorHandler implementation="com.intellij.diagnostic.ITNReporter"/>
+
+        <projectConfigurable instance="com.intellij.tasks.config.TaskConfigurable"/>
+
+        <editChangelistSupport implementation="com.intellij.tasks.impl.TaskChangelistSupport"/>
+
+        <completion.contributor language="TEXT"
+                                implementationClass="com.intellij.tasks.impl.TaskCompletionContributor"/>
+
+        <projectService serviceInterface="com.intellij.tasks.impl.TaskProjectConfiguration"
+                        serviceImplementation="com.intellij.tasks.impl.TaskProjectConfiguration"/>
+        <projectService serviceInterface="com.intellij.tasks.context.WorkingContextManager"
+                        serviceImplementation="com.intellij.tasks.context.WorkingContextManager"/>
+        <applicationService serviceInterface="com.intellij.tasks.config.RecentTaskRepositories"
+                            serviceImplementation="com.intellij.tasks.config.RecentTaskRepositories"/>
+
+        <lang.documentationProvider language="TEXT"
+                                    implementationClass="com.intellij.tasks.doc.TaskDocumentationProvider"/>
+
+        <!--context providers-->
+        <tasks.repositoryType implementation="com.intellij.tasks.kanbanery.KanbaneryRepositoryType"/>
+    </extensions>
+
+</idea-plugin>

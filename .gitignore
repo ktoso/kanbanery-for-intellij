@@ -2,5 +2,6 @@
 out
 target
 
+*.zip
 *~
 *.class
