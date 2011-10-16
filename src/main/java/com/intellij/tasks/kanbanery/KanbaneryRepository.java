@@ -5,7 +5,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.tasks.Task;
 import com.intellij.tasks.TaskState;
 import com.intellij.tasks.impl.BaseRepositoryImpl;
-import com.intellij.tasks.kanbanery.model.KanbaneryComment;
 import com.intellij.tasks.kanbanery.model.KanbaneryTask;
 import com.intellij.util.xmlb.annotations.Tag;
 import org.jetbrains.annotations.NotNull;
@@ -14,13 +13,18 @@ import pl.project13.janbanery.core.Janbanery;
 import pl.project13.janbanery.core.JanbaneryFactory;
 import pl.project13.janbanery.core.flow.TaskMarkFlow;
 import pl.project13.janbanery.exceptions.ProjectNotFoundException;
-import pl.project13.janbanery.resources.Comment;
+import pl.project13.janbanery.resources.TaskType;
+import pl.project13.janbanery.resources.User;
 import pl.project13.janbanery.resources.Workspace;
 
 import javax.swing.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static com.google.common.collect.Maps.newConcurrentMap;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.intellij.openapi.util.text.StringUtil.isNotEmpty;
 
 /**
@@ -36,6 +40,9 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   private String myWorkspaceName = "";
 
   private Janbanery myJanbanery;
+
+  private Map<Long, TaskType> myTaskTypeCache = newConcurrentMap();
+  private Map<Long, User> myUsersCache = newConcurrentMap();
 
   /**
    * for serialization
@@ -59,7 +66,7 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   @Override
   public Task[] getIssues(@Nullable String request, int max, long since) throws Exception {
     List<pl.project13.janbanery.resources.Task> all = janbanery().tasks().all();
-    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transform());
+    List<KanbaneryTask> tasks = Lists.transform(all, KanbaneryTask.transform(myTaskTypeCache));
 
     return tasks.toArray(new KanbaneryTask[tasks.size()]);
   }
@@ -79,11 +86,6 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   @Override
-  public void testConnection() throws Exception {
-    getIssues(null, 10, 0);
-  }
-
-  @Override
   public boolean isConfigured() {
     boolean hasCredentials = (isNotEmpty(myUsername) && isNotEmpty(myPassword)) || isNotEmpty(myApiKey);
     boolean hasProject = isNotEmpty(myWorkspaceName) && isNotEmpty(myProjectName);
@@ -91,6 +93,7 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     return hasCredentials && hasProject;
   }
 
+  @NotNull
   @Override
   public String getPresentableName() {
     return "Kanbanery: " + myWorkspaceName + " / " + myProjectName;
@@ -102,10 +105,9 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     try {
       pl.project13.janbanery.resources.Task task = janbanery().tasks().byId(Long.parseLong(id));
 
-      List<Comment> comments = janbanery().comments().of(task).all();
-      List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transformUsing());
+      TaskType taskType = myTaskTypeCache.get(task.getTaskTypeId());
 
-      return new KanbaneryTask(task, kanbaneryComments);
+      return new KanbaneryTask(task, taskType);
     } catch (Exception e) {
       LOG.warn("Cannot get issue " + id + ": " + e.getMessage());
       return null;
@@ -135,6 +137,10 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
       } else {
         try {
           myJanbanery = toWorkspace.toWorkspace(myWorkspaceName).usingProject(myProjectName);
+
+          preloadTaskTypes();
+          preloadUsers();
+
         } catch (ProjectNotFoundException ex) {
           myJanbanery = toWorkspace.toWorkspace(myWorkspaceName);
         }
@@ -150,6 +156,50 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
     }
 
     return myJanbanery;
+  }
+
+  private void preloadUsers() {
+    new SwingWorker<List<User>, Object>() {
+
+      public List<User> all;
+
+      @Override
+      protected List<User> doInBackground() throws Exception {
+        return all = myJanbanery.users().allWithNobody();
+      }
+
+      @Override
+      protected void done() {
+        HashMap<Long, User> users = newHashMap();
+        for (User user : all) {
+          users.put(user.getId(), user);
+        }
+
+        myUsersCache = users;
+      }
+    }.execute();
+  }
+
+  private void preloadTaskTypes() {
+    new SwingWorker<List<TaskType>, Object>() {
+
+      public List<TaskType> all;
+
+      @Override
+      protected List<TaskType> doInBackground() throws Exception {
+        return all = myJanbanery.taskTypes().all();
+      }
+
+      @Override
+      protected void done() {
+        HashMap<Long, TaskType> tts = newHashMap();
+        for (TaskType taskType : all) {
+          tts.put(taskType.getId(), taskType);
+        }
+
+        myTaskTypeCache = tts;
+      }
+    }.execute();
   }
 
   public List<String> findDisplayableProjects() {

@@ -17,6 +17,8 @@
 package com.intellij.tasks.kanbanery.model;
 
 import com.google.common.base.Function;
+import com.intellij.openapi.util.IconLoader;
+import com.intellij.tasks.Comment;
 import com.intellij.tasks.TaskState;
 import com.intellij.tasks.TaskType;
 import org.jetbrains.annotations.NotNull;
@@ -24,9 +26,8 @@ import org.jetbrains.annotations.Nullable;
 import pl.project13.janbanery.resources.Task;
 
 import javax.swing.*;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
+import java.util.Map;
 
 /**
  * @author Konrad Malawski
@@ -34,11 +35,10 @@ import java.util.List;
 public class KanbaneryTask extends com.intellij.tasks.Task {
 
   private final Task task;
-  private final List<KanbaneryComment> comments;
 
-  public KanbaneryTask(Task task, List<KanbaneryComment> comments) {
+  public KanbaneryTask(Task task, pl.project13.janbanery.resources.TaskType taskType) {
     this.task = task;
-    this.comments = comments;
+    this.task.setTaskTypeName(taskType.getName());
   }
 
   @NotNull
@@ -57,14 +57,11 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
 
   @NotNull
   public com.intellij.tasks.Comment[] getComments() {
-    return comments.toArray(new KanbaneryComment[comments.size()]);
+    return Comment.EMPTY_ARRAY;
   }
 
   public Icon getIcon() {
-//    String iconUrl = task.getTypeIconUrl();
-    String iconUrl = "https://llp.kanbanery.com/images/icon-tasks.png";
-//    return iconUrl == null ? null : isClosed() ? IconLoader.getDisabledIcon(iconUrl) : CachedIconLoader.getIcon(iconUrl);
-    return null;
+    return IconLoader.getIcon("/resources/kanbanery.png");
   }
 
   @NotNull
@@ -126,10 +123,10 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
 
   @Override
   public String getPresentableName() {
-    return task.getId() + " [" + task.getTaskTypeName() + "]: " + task.getTitle();
+    return String.format("[#%d] (%s): %s", task.getId(), task.getTaskTypeName(), task.getTitle());
   }
 
-  public static Function<Task, KanbaneryTask> transform() {
+  public static Function<Task, KanbaneryTask> transform(final Map<Long, pl.project13.janbanery.resources.TaskType> taskTypes) {
 
     return new Function<Task, KanbaneryTask>() {
       @Override
@@ -138,11 +135,8 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
           return null;
         }
 
-//        List<Comment> comments = janbanery.comments().of(task).all();
-//        List<KanbaneryComment> kanbaneryComments = Lists.transform(comments, KanbaneryComment.transform(janbanery));
-        List<KanbaneryComment> kanbaneryComments = Collections.emptyList();
-
-        return new KanbaneryTask(task, kanbaneryComments);
+        pl.project13.janbanery.resources.TaskType taskType = taskTypes.get(task.getTaskTypeId());
+        return new KanbaneryTask(task, taskType);
       }
     };
   }
