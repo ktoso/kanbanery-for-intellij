@@ -49,12 +49,6 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
 
   @NotNull
   @Override
-  public String getSummary() {
-    return getPresentableName();
-  }
-
-  @NotNull
-  @Override
   public String getDescription() {
     return task.getDescription();
   }
@@ -129,6 +123,18 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
     return null;
   }
 
+  /**
+   * This is used when doing a commit for example.
+   */
+  @NotNull
+  @Override
+  public String getSummary() {
+    return getPresentableName();
+  }
+
+  /**
+   * This is used in all kinds of lists, such as the combo box in the menu bar.
+   */
   @Override
   public String getPresentableName() {
     return String.format("[#%d] (%s): %s", task.getId(), task.getTaskTypeName(), task.getTitle());
