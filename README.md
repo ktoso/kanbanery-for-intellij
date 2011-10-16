@@ -2,6 +2,8 @@ Kanbanery for Intellij
 ======================
 It's a simple plugin to enable interaction between **<a href="http://www.kanbanery.com">Kanbanery</a>** and **JetBrains IntelliJ IDEA** Tasks.
 
+Here's a demo video if you'd like to see it in action: http://vimeo.com/30644428 :-)
+
 Kanbanery + IntelliJ + GitHub = Awesome
 ---------------------------------------
 You can use this plugin, to automatically add task descriptions to your commits.
