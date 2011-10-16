@@ -2,12 +2,17 @@
     <id>pl.project13.intellij.kanbanery</id>
     <name>IntelliJ Kanbanery</name>
     <description>
-        A connector for IntelliJ Tasks for Kanbanery.
-        You'll gain all what Tasks have to offer and even be able to select them from your Kanbanery board :-)
+        Use Kanbanery as IntelliJ Tasks resource.
+        You can choose tasks from your Kanban board (or multiple boards) and start hacking on them.
+
+        Task titles (and reference ID's) are then added automatically to each commit so Kanbanery will know that some commit is about some task.
     </description>
     <version>1.0</version>
-    <vendor logo="/kanbanery.png">Project13.pl + Kanbanery.com</vendor>
-    <!--<idea-version since-build="8000"/>-->
+    <vendor logo="/kanbanery.png"
+            email="konrad.malawski@java.pl"
+            url="http://blog.project13.pl/">
+        konrad.malawski@java.pl
+    </vendor>
 
     <depends>com.intellij.tasks</depends>
     <depends optional="true" config-file="java-contexts.xml">com.intellij.modules.java</depends>

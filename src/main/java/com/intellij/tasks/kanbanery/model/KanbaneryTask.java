@@ -36,9 +36,11 @@ public class KanbaneryTask extends com.intellij.tasks.Task {
 
   private final Task task;
 
-  public KanbaneryTask(Task task, pl.project13.janbanery.resources.TaskType taskType) {
+  public KanbaneryTask(@NotNull Task task, @Nullable pl.project13.janbanery.resources.TaskType taskType) {
     this.task = task;
-    this.task.setTaskTypeName(taskType.getName());
+    if (taskType != null) {
+      this.task.setTaskTypeName(taskType.getName());
+    }
   }
 
   @NotNull

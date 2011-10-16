@@ -18,10 +18,7 @@ import pl.project13.janbanery.resources.User;
 import pl.project13.janbanery.resources.Workspace;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newHashMap;
@@ -305,6 +302,10 @@ public class KanbaneryRepository extends BaseRepositoryImpl {
   }
 
   public List<Workspace> getWorkspaces() {
+    if(myUsername.isEmpty() && myApiKey.isEmpty()) {
+      return Collections.emptyList();
+    }
+
     return janbanery().workspaces().all();
   }
 
