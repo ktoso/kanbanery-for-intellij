@@ -1,6 +1,6 @@
 <idea-plugin version="2">
     <id>pl.project13.intellij.kanbanery</id>
-    <name>IntelliJ Kanbanery</name>
+    <name>Kanbanery for IntelliJ</name>
     <description>
         Use Kanbanery as IntelliJ Tasks resource.
         You can choose tasks from your Kanban board (or multiple boards) and start hacking on them.
