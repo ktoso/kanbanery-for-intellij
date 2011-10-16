@@ -8,14 +8,29 @@
         Task titles (and reference ID's) are then added automatically to each commit so Kanbanery will know that some commit is about some task.
     </description>
     <version>1.0</version>
+    <change-notes>
+        v1.0
+        * Initial release
+    </change-notes>
+    <idea-version since-build="8000"/>
     <vendor logo="/kanbanery.png"
             email="konrad.malawski@java.pl"
-            url="http://blog.project13.pl/">
-        konrad.malawski@java.pl
-    </vendor>
+            url="http://blog.project13.pl/">konrad.malawski@java.pl</vendor>
 
     <depends>com.intellij.tasks</depends>
     <depends optional="true" config-file="java-contexts.xml">com.intellij.modules.java</depends>
+
+    <application-components>
+
+    </application-components>
+
+    <project-components>
+
+    </project-components>
+
+    <actions>
+
+    </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <!--context providers-->
