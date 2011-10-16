@@ -5,7 +5,7 @@ It's a simple plugin to enable interaction between Kanbanery and IntelliJ Tasks.
 
 Janbanery, the fluent Kanbanery API Connector
 =============================================
-
+Oh, yay!
 
 License
 =======
