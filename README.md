@@ -2,7 +2,7 @@ Kanbanery for Intellij
 ======================
 It's a simple plugin to enable interaction between **<a href="http://www.kanbanery.com">Kanbanery</a>** and **JetBrains IntelliJ IDEA** Tasks.
 
-Here's a demo video if you'd like to see it in action: http://vimeo.com/30644428 :-)
+Here's a demo video if you'd like to see it in action: http://www.youtube.com/watch?v=nJareu4Wi0M :-)
 
 Kanbanery + IntelliJ + GitHub = Awesome
 ---------------------------------------
@@ -14,9 +14,7 @@ This is how switching tasks looks like (you can quickly open this window via **A
 When you then press **CTRL + Q** (just as "show javadoc), you'll get more information about a task, such as it's description etc.
 <img src="https://github.com/ktoso/kanbanery-for-intellij/raw/master/doc/switch_task_q_gives_a_nice_info.png"/>
 
-Another thing it does is something like git stash, that is you can have different changesets between which you can switch.
-It's called contexts and it's a feature of IntelliJ's Task system:
-<img src="https://github.com/ktoso/kanbanery-for-intellij/raw/master/doc/" alt="tasks"/>
+Another thing it does is something like git stash, that is you can have different change sets between which you can switch...
 
 And that's how the settings menu looks like:
 <img src="https://github.com/ktoso/kanbanery-for-intellij/raw/master/doc/settings_with_menu.png"/>

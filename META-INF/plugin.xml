@@ -28,9 +28,20 @@
     <idea-version since-build="8000"/>
     <vendor logo="/kanbanery.png"
             email="konrad.malawski@java.pl"
-            url="http://blog.project13.pl/">project13.pl</vendor>
+            url="http://blog.project13.pl/">
+        project13.pl
+    </vendor>
 
     <depends>com.intellij.tasks</depends>
+
+    <application-components>
+    </application-components>
+
+    <project-components>
+    </project-components>
+
+    <actions>
+    </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <!--context providers-->
