@@ -33,15 +33,7 @@
     </vendor>
 
     <depends>com.intellij.tasks</depends>
-
-    <application-components>
-    </application-components>
-
-    <project-components>
-    </project-components>
-
-    <actions>
-    </actions>
+    <depends optional="true" config-file="java-contexts.xml">com.intellij.modules.java</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <!--context providers-->
