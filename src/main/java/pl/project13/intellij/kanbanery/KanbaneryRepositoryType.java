@@ -1,4 +1,4 @@
-package com.intellij.tasks.kanbanery;
+package pl.project13.intellij.kanbanery;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;

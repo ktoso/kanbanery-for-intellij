@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.intellij.tasks.kanbanery;
+package pl.project13.intellij.kanbanery;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -23,6 +23,7 @@ import com.intellij.ui.CollectionComboBoxModel;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.Consumer;
 import org.jetbrains.annotations.Nullable;
+import pl.project13.intellij.kanbanery.KanbaneryRepository;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

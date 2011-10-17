@@ -1,11 +1,11 @@
-package com.intellij.tasks.kanbanery;
+package pl.project13.intellij.kanbanery;
 
 import com.google.common.collect.Lists;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.tasks.Task;
 import com.intellij.tasks.TaskState;
 import com.intellij.tasks.impl.BaseRepositoryImpl;
-import com.intellij.tasks.kanbanery.model.KanbaneryTask;
+import pl.project13.intellij.kanbanery.model.KanbaneryTask;
 import com.intellij.util.xmlb.annotations.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +30,7 @@ import static com.intellij.openapi.util.text.StringUtil.isNotEmpty;
 @Tag("Kanbanery")
 public class KanbaneryRepository extends BaseRepositoryImpl {
 
-  private final static Logger LOG = Logger.getInstance("#com.intellij.tasks.kanbanery.KanbaneryRepository");
+  private final static Logger LOG = Logger.getInstance("#pl.project13.intellij.kanbanery.KanbaneryRepository");
 
   private String myApiKey = "";
   private String myProjectName = "";

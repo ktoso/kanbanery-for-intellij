@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.intellij.tasks.kanbanery.model;
+package pl.project13.intellij.kanbanery.model;
 
 import com.google.common.base.Function;
 import com.intellij.tasks.impl.SimpleComment;
