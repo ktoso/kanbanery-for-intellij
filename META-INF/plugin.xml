@@ -3,16 +3,23 @@
     <name>Kanbanery for IntelliJ</name>
     <description>
         <![CDATA[
-        Use <a href="http://www.kanbanery.com">Kanbanery</a> as IntelliJ <b>Tasks</b> resource.<br/>
-        You can choose tasks from your Kanban board (or multiple boards) and start hacking on them.<br/>
-        <br/>
-        Task titles (and reference ID's) are then added automatically to each commit so Kanbanery will know that some commit is about some task.
+        <p>
+          Use <a href="http://www.kanbanery.com">Kanbanery</a> as IntelliJ <b>Tasks</b> resource.<br/>
+          You can choose tasks from your Kanban board (or multiple boards) and start hacking on them.<br/>
+          Be sure to take a look at the <a href="https://github.com/ktoso/kanbanery-for-intellij">README in the github repo</a>, as it contains a nice preview of this plugin :-)
+        </p>
+        <p>
+          Task titles (and reference ID's) are then added automatically to each commit so Kanbanery will know that some commit is about some task.
+        </p>
+        <p>
+          You will need to create a Kanbanery account to use this plugin, but don't worry - it's free :-)
+        </p>
         ]]>
     </description>
     <version>1.0</version>
     <change-notes>
         <![CDATA[
-        v1.0
+        <strong>v1.0</strong>
         <ul>
           <li>Initial release</li>
         </ul>
@@ -24,18 +31,6 @@
             url="http://blog.project13.pl/">project13.pl</vendor>
 
     <depends>com.intellij.tasks</depends>
-
-    <application-components>
-
-    </application-components>
-
-    <project-components>
-
-    </project-components>
-
-    <actions>
-
-    </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <!--context providers-->
